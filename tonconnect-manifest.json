@@ -1,6 +1,9 @@
 {
   "url": "https://phenomenal-bubblegum-d6b71e.netlify.app",
   "name": "Star Randomizer",
+  "iconUrl": "https://ваш-домен.com/assets/icon.png",
+  "termsOfUseUrl": "https://ваш-домен.com/terms",
+  "privacyPolicyUrl": "https://ваш-домен.com/privacy",
   "version": "1.0.0",
   "network": "testnet",
   "address": "EQDYXMQCS9pzb_9oFiJjV97si_kNZwh0TU-0UtmFG-bHlqGf"
