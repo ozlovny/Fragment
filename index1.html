@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>🎞️ Рандомайзер Видео</title>
+  <script src="https://unpkg.com/@tonconnect/sdk@latest"></script>
+  <script src="https://npmcdn.com/parse/dist/parse.min.js"></script>
+  <style>
+    body {
+      background-color: #1A2026;
+      font-family: sans-serif;
+      color: white;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 50px;
+    }
+
+    .input_username {
+      padding: 10px;
+      width: 300px;
+      border-radius: 6px;
+      border: none;
+      font-size: 16px;
+      margin-bottom: 30px;
+    }
+
+    .button-group {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    .select_button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 300px;
+      height: 50px;
+      background-color: #242E38;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 16px;
+      white-space: nowrap;
+      cursor: pointer;
+      box-sizing: border-box;
+    }
+
+    .select_button.active {
+      background-color: #248BDA;
+    }
+
+    .tx_button {
+      padding: 12px 100px;
+      background-color: #248BDA;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .message {
+      margin-top: 20px;
+      color: #00ffcc;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <input type="text" id="username" class="input_username" placeholder="Введите username">
+
+    <div class="button-group">
+      <button class="select_button" onclick="selectChoice(this, 'star_50')">50 stars</button>
+      <button class="select_button" onclick="selectChoice(this, 'star_100')">100 stars</button>
+      <button class="select_button" onclick="selectChoice(this, 'star_150')">150 stars</button>
+      <button class="select_button" onclick="selectChoice(this, 'star_200')">200 stars</button>
+    </div>
+
+    <button class="tx_button" onclick="submitData()">Купить</button>
+    <div id="message" class="message"></div>
+  </div>
+
+  <script>
+    // 🔑 Back4App
+    Parse.initialize("YOUR_APP_ID", "YOUR_JAVASCRIPT_KEY");
+    Parse.serverURL = "https://parseapi.back4app.com/";
+
+    // 💎 TON Connect
+    const tonConnect = new TonConnect();
+    tonConnect.restoreConnection();
+
+    const recipientAddress = "YOUR_TON_WALLET_ADDRESS"; // получатель
+    const amountMap = {
+      star_50: 0.1,
+      star_100: 0.2,
+      star_150: 0.3,
+      star_200: 0.4
+    };
+
+    let selectedChoice = null;
+
+    function selectChoice(button, choice) {
+      selectedChoice = choice;
+      document.querySelectorAll('.select_button').forEach(btn => btn.classList.remove('active'));
+      button.classList.add('active');
+      document.getElementById('message').textContent = `Вы выбрали: ${choice}`;
+    }
+
+    async function sendTonTransaction(amountTon) {
+      const wallet = tonConnect.connectedWallet;
+      if (!wallet) {
+        document.getElementById('message').textContent = '❌ Подключите TON Wallet';
+        return false;
+      }
+
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 60,
+        messages: [
+          {
+            address: recipientAddress,
+            amount: (amountTon * 1e9).toString()
+          }
+        ]
+      };
+
+      try {
+        const result = await wallet.sendTransaction(transaction);
+        document.getElementById('message').textContent = '✅ Оплата отправлена, ожидаем подтверждение...';
+        return true;
+      } catch (err) {
+        document.getElementById('message').textContent = '❌ Ошибка оплаты через TON';
+        return false;
+      }
+    }
+
+    async function submitData() {
+      const username = document.getElementById('username').value.trim();
+
+      if (!username) {
+        document.getElementById('message').textContent = '❌ Введите username';
+        return;
+      }
+
+      if (!selectedChoice) {
+        document.getElementById('message').textContent = '❌ Выберите количество звёзд';
+        return;
+      }
+
+      const amountTon = amountMap[selectedChoice];
+
+      const paid = await sendTonTransaction(amountTon);
+      if (!paid) return;
+
+      try {
+        const result = await Parse.Cloud.run("submitChoice", {
+          username,
+          choice: selectedChoice
+        });
+
+        document.getElementById('message').textContent = result.message;
+      } catch (err) {
+        document.getElementById('message').textContent = err.message;
+      }
+    }
+  </script>
+</body>
+  </html>
